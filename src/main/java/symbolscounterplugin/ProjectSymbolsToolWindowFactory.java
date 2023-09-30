@@ -1,9 +1,19 @@
 package symbolscounterplugin;
 
 import com.intellij.openapi.project.DumbAware;
+import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
+import com.intellij.psi.JavaPsiFacade;
+import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiFile;
+import com.intellij.psi.PsiJavaFile;
+import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.psi.search.PsiShortNamesCache;
+import com.intellij.psi.search.searches.AllClassesSearch;
+import com.intellij.ui.components.JBList;
+import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import org.apache.commons.lang3.StringUtils;
@@ -11,17 +21,65 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Objects;
 
 
-public class CalendarToolWindowFactory implements ToolWindowFactory, DumbAware {
+public class ProjectSymbolsToolWindowFactory implements ToolWindowFactory { // , DumbAware
 
     @Override
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
-        CalendarToolWindowContent toolWindowContent = new CalendarToolWindowContent(toolWindow);
+        ProjectSymbolsToolWindowContent toolWindowContent = new ProjectSymbolsToolWindowContent(project);
         Content content = ContentFactory.getInstance().createContent(toolWindowContent.getContentPanel(), "", false);
         toolWindow.getContentManager().addContent(content);
+    }
+
+    private static class ProjectSymbolsToolWindowContent {
+
+        private final JPanel contentPanel = new JPanel();
+        private final JScrollPane scrollPane = new JBScrollPane();
+
+        public ProjectSymbolsToolWindowContent(Project project) {
+            contentPanel.setLayout(new BorderLayout(0, 20));
+            contentPanel.setBorder(BorderFactory.createEmptyBorder(40, 0, 0, 0));
+            contentPanel.add(createScrollPane(project), BorderLayout.PAGE_START);
+        }
+
+        public JPanel getContentPanel() {
+            return contentPanel;
+        }
+
+        private JScrollPane createScrollPane(Project project) {
+            DumbService.getInstance(project).runWhenSmart(() -> {
+                System.out.println("DumbService runWhenSmart");
+                scrollPane.setViewportView(getSourceFilesNamesList(project));
+            });
+
+            return scrollPane;
+        }
+
+        public JBList<String> getSourceFilesNamesList(Project project) {
+            List<String> fileNames = new ArrayList<>();
+            JavaPsiFacade javaPsiFacade = JavaPsiFacade.getInstance(project);
+
+            for (PsiClass psiJavaClass :
+                    AllClassesSearch.search(GlobalSearchScope.projectScope(project), project)) {
+                    //javaPsiFacade.findClasses("*", GlobalSearchScope.allScope(project))) {
+                PsiFile containingFile = psiJavaClass.getContainingFile();
+                System.out.println("PsiFile: " + containingFile.getName());
+
+                if (containingFile instanceof PsiJavaFile) {
+                    PsiClass[] classes = ((PsiJavaFile) containingFile).getClasses();
+                    for (PsiClass psiClass : classes) {
+                        fileNames.add(psiClass.getQualifiedName());
+                    }
+                }
+            }
+
+            return new JBList<>(fileNames.toArray(new String[0]));
+        }
     }
 
     private static class CalendarToolWindowContent {
