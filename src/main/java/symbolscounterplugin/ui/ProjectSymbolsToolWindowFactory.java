@@ -1,17 +1,14 @@
-package symbolscounterplugin;
+package symbolscounterplugin.ui;
 
-import com.intellij.openapi.project.DumbAware;
+import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.openapi.project.DumbService;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
-import com.intellij.psi.JavaPsiFacade;
-import com.intellij.psi.PsiClass;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.PsiJavaFile;
+import com.intellij.psi.*;
+import com.intellij.psi.search.FileTypeIndex;
 import com.intellij.psi.search.GlobalSearchScope;
-import com.intellij.psi.search.PsiShortNamesCache;
-import com.intellij.psi.search.searches.AllClassesSearch;
 import com.intellij.ui.components.JBList;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.content.Content;
@@ -21,10 +18,8 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 
 public class ProjectSymbolsToolWindowFactory implements ToolWindowFactory { // , DumbAware
@@ -43,42 +38,61 @@ public class ProjectSymbolsToolWindowFactory implements ToolWindowFactory { // ,
 
         public ProjectSymbolsToolWindowContent(Project project) {
             contentPanel.setLayout(new BorderLayout(0, 20));
-            contentPanel.setBorder(BorderFactory.createEmptyBorder(40, 0, 0, 0));
-            contentPanel.add(createScrollPane(project), BorderLayout.PAGE_START);
+            // contentPanel.setBorder(BorderFactory.createEmptyBorder(40, 0, 0, 0));
+            contentPanel.add(createScrollPane(), BorderLayout.PAGE_START);
+            contentPanel.add(createControlsPanel(project), BorderLayout.CENTER);
+            updateScrollPaneViewport(project);
+        }
+
+        @NotNull
+        private JPanel createControlsPanel(Project project) {
+            JPanel controlsPanel = new JPanel();
+            JButton refreshSymbolsButton = new JButton("Refresh");
+            refreshSymbolsButton.addActionListener(e -> updateScrollPaneViewport(project));
+            controlsPanel.add(refreshSymbolsButton);
+            return controlsPanel;
         }
 
         public JPanel getContentPanel() {
             return contentPanel;
         }
 
-        private JScrollPane createScrollPane(Project project) {
-            DumbService.getInstance(project).runWhenSmart(() -> {
-                System.out.println("DumbService runWhenSmart");
-                scrollPane.setViewportView(getSourceFilesNamesList(project));
-            });
-
+        private JScrollPane createScrollPane() {
             return scrollPane;
         }
 
+        private void updateScrollPaneViewport(Project project) {
+            DumbService.getInstance(project).runWhenSmart(() -> {
+                scrollPane.setViewportView(getSourceFilesNamesList(project));
+            });
+        }
+
         public JBList<String> getSourceFilesNamesList(Project project) {
-            List<String> fileNames = new ArrayList<>();
-            JavaPsiFacade javaPsiFacade = JavaPsiFacade.getInstance(project);
+            List<String> javaQualifiedFileNames = new ArrayList<>();
 
-            for (PsiClass psiJavaClass :
-                    AllClassesSearch.search(GlobalSearchScope.projectScope(project), project)) {
-                    //javaPsiFacade.findClasses("*", GlobalSearchScope.allScope(project))) {
-                PsiFile containingFile = psiJavaClass.getContainingFile();
-                System.out.println("PsiFile: " + containingFile.getName());
+            Collection<VirtualFile> javaFiles = FileTypeIndex.getFiles(
+                    JavaFileType.INSTANCE,
+                    GlobalSearchScope.projectScope(project)
+            );
+            javaFiles.forEach((virtualFile) -> {
+                PsiFile psiFile = PsiManager.getInstance(project).findFile(virtualFile);
 
-                if (containingFile instanceof PsiJavaFile) {
-                    PsiClass[] classes = ((PsiJavaFile) containingFile).getClasses();
-                    for (PsiClass psiClass : classes) {
-                        fileNames.add(psiClass.getQualifiedName());
-                    }
+                if (psiFile instanceof PsiJavaFile psiJavaFile) {
+                    psiJavaFile.accept(new PsiRecursiveElementVisitor() {
+                        @Override
+                        public void visitElement(@NotNull PsiElement element) {
+                            super.visitElement(element);
+
+                            if (element instanceof PsiClass classElement) {
+                                javaQualifiedFileNames.add(classElement.getQualifiedName());
+                            }
+                        }
+                    });
                 }
-            }
+            });
+            javaQualifiedFileNames.sort(String::compareTo);
 
-            return new JBList<>(fileNames.toArray(new String[0]));
+            return new JBList<>(javaQualifiedFileNames.toArray(new String[0]));
         }
     }
 

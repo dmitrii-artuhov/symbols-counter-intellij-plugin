@@ -26,6 +26,6 @@
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow id="Project symbols" secondary="true" icon="AllIcons.Toolwindows.WebToolWindow" anchor="right"
-                    factoryClass="symbolscounterplugin.ProjectSymbolsToolWindowFactory"/>
+                    factoryClass="symbolscounterplugin.ui.ProjectSymbolsToolWindowFactory"/>
     </extensions>
 </idea-plugin>
