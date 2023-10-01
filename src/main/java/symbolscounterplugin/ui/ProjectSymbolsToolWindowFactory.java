@@ -1,7 +1,8 @@
 package symbolscounterplugin.ui;
 
 import com.intellij.ide.highlighter.JavaFileType;
-import com.intellij.openapi.project.DumbService;
+import com.intellij.openapi.application.ModalityState;
+import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
@@ -15,6 +16,8 @@ import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
+import symbolscounterplugin.utils.Constants;
+import symbolscounterplugin.utils.SymbolsComputeServiceSingleton;
 
 import javax.swing.*;
 import java.awt.*;
@@ -22,7 +25,7 @@ import java.util.List;
 import java.util.*;
 
 
-public class ProjectSymbolsToolWindowFactory implements ToolWindowFactory { // , DumbAware
+public class ProjectSymbolsToolWindowFactory implements ToolWindowFactory {
 
     @Override
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
@@ -41,14 +44,21 @@ public class ProjectSymbolsToolWindowFactory implements ToolWindowFactory { // ,
             // contentPanel.setBorder(BorderFactory.createEmptyBorder(40, 0, 0, 0));
             contentPanel.add(createScrollPane(), BorderLayout.PAGE_START);
             contentPanel.add(createControlsPanel(project), BorderLayout.CENTER);
-            updateScrollPaneViewport(project);
+            // updateScrollPaneViewport(project);
+        }
+
+        @NotNull
+        private JScrollPane createScrollPane() {
+            scrollPane.putClientProperty(Constants.UI_ID_PROPERTY, Constants.SYMBOLS_TOOL_WINDOW_SCROLL_PANE_ID);
+            return scrollPane;
         }
 
         @NotNull
         private JPanel createControlsPanel(Project project) {
             JPanel controlsPanel = new JPanel();
             JButton refreshSymbolsButton = new JButton("Refresh");
-            refreshSymbolsButton.addActionListener(e -> updateScrollPaneViewport(project));
+            // refreshSymbolsButton.addActionListener(e -> updateScrollPaneViewport(project));
+            refreshSymbolsButton.putClientProperty(Constants.UI_ID_PROPERTY, Constants.SYMBOLS_REFRESH_BUTTON_ID);
             controlsPanel.add(refreshSymbolsButton);
             return controlsPanel;
         }
@@ -57,14 +67,12 @@ public class ProjectSymbolsToolWindowFactory implements ToolWindowFactory { // ,
             return contentPanel;
         }
 
-        private JScrollPane createScrollPane() {
-            return scrollPane;
-        }
-
         private void updateScrollPaneViewport(Project project) {
-            DumbService.getInstance(project).runWhenSmart(() -> {
-                scrollPane.setViewportView(getSourceFilesNamesList(project));
-            });
+            ReadAction
+                .nonBlocking(() -> getSourceFilesNamesList(project))
+                .inSmartMode(project)
+                .finishOnUiThread(ModalityState.defaultModalityState(), scrollPane::setViewportView)
+                .submit(SymbolsComputeServiceSingleton.getInstance());
         }
 
         public JBList<String> getSourceFilesNamesList(Project project) {
