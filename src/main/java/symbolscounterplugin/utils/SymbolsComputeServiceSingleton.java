@@ -8,8 +8,8 @@ public class SymbolsComputeServiceSingleton {
     private SymbolsComputeServiceSingleton() {}
 
     private static class SingletonHelper {
-        //private static final SymbolsComputeServiceSingleton INSTANCE = new SymbolsComputeServiceSingleton();
-        private static final Executor INSTANCE = AppExecutorUtil.createBoundedScheduledExecutorService(Constants.SYMBOLS_COMPUTING_THREAD_NAME, 1);
+        private static final Executor INSTANCE =
+                AppExecutorUtil.createBoundedScheduledExecutorService(Constants.SYMBOLS_COMPUTING_THREAD_NAME, 1);
     }
 
     public static Executor getInstance() {

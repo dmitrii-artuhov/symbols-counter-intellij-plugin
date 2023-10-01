@@ -46,7 +46,7 @@ public class ProjectOpenStartupActivity implements StartupActivity {
             // run initial rendering
             controller.postViewportUpdate(project);
 
-            // register refreash button callback
+            // register refresh button callback
             refreshButton.addActionListener(e -> controller.postViewportUpdate(project));
 
             // register document update callback
