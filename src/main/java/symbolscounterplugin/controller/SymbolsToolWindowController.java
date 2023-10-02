@@ -1,13 +1,19 @@
 package symbolscounterplugin.controller;
 
+import com.intellij.icons.AllIcons;
 import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.project.Project;
+import com.intellij.ui.JBColor;
 import com.intellij.ui.components.JBList;
 import symbolscounterplugin.model.JavaSymbolsProvider;
+import symbolscounterplugin.ui.Badge;
+import symbolscounterplugin.ui.ScrollPaneItem;
+import symbolscounterplugin.ui.ScrollPaneListRenderer;
 import symbolscounterplugin.utils.SymbolsComputeServiceSingleton;
 
 import javax.swing.*;
+import java.util.List;
 
 public class SymbolsToolWindowController {
     private final JScrollPane view;
@@ -28,10 +34,31 @@ public class SymbolsToolWindowController {
         ReadAction
             .nonBlocking(() -> {
                 model.computeQualifiedSymbolNames(project);
-                return new JBList<>(model.getStoredQualifiedSymbolNames().toArray(new String[0]));
+
+                // return new JBList<>(model.getStoredQualifiedSymbolNames().toArray(new String[0]));
+                return buildToolWindowContent(
+                    model.getStoredQualifiedSymbolNames()
+                );
             })
             .inSmartMode(project)
             .finishOnUiThread(ModalityState.defaultModalityState(), view::setViewportView)
             .submit(SymbolsComputeServiceSingleton.getInstance());
+    }
+
+    private JBList<ScrollPaneItem> buildToolWindowContent(final List<String> symbols) {
+        JBList<ScrollPaneItem> symbolsList = new JBList<>();
+        symbolsList.setCellRenderer(new ScrollPaneListRenderer());
+        DefaultListModel<ScrollPaneItem> listModel = new DefaultListModel<>();
+
+        int i = 100;
+        for (var symbol : symbols) {
+            listModel.addElement(new ScrollPaneItem(
+                new Badge(AllIcons.Nodes.Class, String.valueOf(i++), JBColor.BLUE),
+                symbol
+            ));
+        }
+
+        symbolsList.setModel(listModel);
+        return symbolsList;
     }
 }
