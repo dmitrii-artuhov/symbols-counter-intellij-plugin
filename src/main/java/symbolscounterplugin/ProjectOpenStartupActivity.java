@@ -19,7 +19,7 @@ import symbolscounterplugin.utils.SymbolsPluginUtils;
 
 import javax.swing.*;
 import java.util.List;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 public class ProjectOpenStartupActivity implements StartupActivity {
     private SymbolsToolWindowController controller = null;
@@ -37,14 +37,11 @@ public class ProjectOpenStartupActivity implements StartupActivity {
         });
          */
 
-        initializeController(project, (scrollPane, refreshButton) -> {
+        initializeController(project, (scrollPane) -> {
             controller = new SymbolsToolWindowController(new JavaSymbolsProvider(), scrollPane);
 
             // run initial rendering
             controller.postViewportUpdate(project);
-
-            // register refresh button callback
-            refreshButton.addActionListener(e -> controller.postViewportUpdate(project));
 
             // register document update callback
             project.getMessageBus().connect().subscribe(VirtualFileManager.VFS_CHANGES, new BulkFileListener() {
@@ -71,7 +68,7 @@ public class ProjectOpenStartupActivity implements StartupActivity {
         });
     }
 
-    private void initializeController(Project project, BiConsumer<JScrollPane, JButton> callback) {
+    private void initializeController(Project project, Consumer<JScrollPane> callback) {
         ToolWindow symbolsToolWindow = ToolWindowManager.getInstance(project).getToolWindow(Constants.SYMBOLS_TOOL_WINDOW_ID);
 
         if (symbolsToolWindow != null) {
@@ -79,14 +76,13 @@ public class ProjectOpenStartupActivity implements StartupActivity {
             if (content != null) {
                 JComponent panel = content.getComponent();
                 JScrollPane scrollPane = SymbolsPluginUtils.findComponentByProperty(panel, Constants.SYMBOLS_TOOL_WINDOW_SCROLL_PANE_ID, Constants.UI_ID_PROPERTY);
-                JButton refreshButton = SymbolsPluginUtils.findComponentByProperty(panel, Constants.SYMBOLS_REFRESH_BUTTON_ID, Constants.UI_ID_PROPERTY);
 
-                if (scrollPane != null && refreshButton != null) {
-                    callback.accept(scrollPane, refreshButton);
+                if (scrollPane == null) {
+                    logger.error("Unable to find scroll pane to initialize symbols compute controller");
+                    throw new RuntimeException("Unable to find scroll pane to draw to initialize symbols compute controller: scrollPane=" + scrollPane);
                 }
-                else {
-                    logger.error("Unable to find scrollPane and refreshButton to initialize symbols compute controller");
-                }
+
+                callback.accept(scrollPane);
             }
         }
     }

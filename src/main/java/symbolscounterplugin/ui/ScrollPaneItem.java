@@ -1,29 +1,41 @@
 package symbolscounterplugin.ui;
 
-import com.intellij.ui.JBColor;
-
 import javax.swing.*;
-import java.awt.*;
 
 public class ScrollPaneItem {
-    private final Badge badge;
+    // private final Badge badge;
+    private final JLabel classCountLabel;
+    private final JLabel methodCountLabel;
     private final String text;
 
-    public ScrollPaneItem(Badge badge, String text) {
-        this.badge = badge;
+    public ScrollPaneItem(Badge classCountLabel, Badge methodCountLabel, String text) {
+        this.classCountLabel = classCountLabel;
+        this.methodCountLabel = methodCountLabel;
         this.text = text;
     }
 
-    public JLabel getBadges() {
-//        JPanel panel = new JPanel();
-//        panel.setBackground(null);
-//        panel.setLayout(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        // panel.setBorder(BorderFactory.createLineBorder(JBColor.GREEN, 1));
-//        panel.setBorder(null);
+    public JLabel getClassCountLabel() {
+        return classCountLabel;
+    }
 
-//        panel.add(badge);
-//        panel.add(badge);
-        return badge;
+    public JLabel getMethodCountLabel() {
+        return methodCountLabel;
+    }
+
+    public String getClassCountLabelText() {
+        return classCountLabel.getText();
+    }
+
+    public Icon getClassCountLabelIcon() {
+        return classCountLabel.getIcon();
+    }
+
+    public String getMethodCountLabelText() {
+        return methodCountLabel.getText();
+    }
+
+    public Icon getMethodCountLabelIcon() {
+        return methodCountLabel.getIcon();
     }
 
     public String getText() {

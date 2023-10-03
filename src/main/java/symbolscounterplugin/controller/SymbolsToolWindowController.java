@@ -1,18 +1,19 @@
 package symbolscounterplugin.controller;
 
-import com.intellij.icons.AllIcons;
 import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.project.Project;
-import com.intellij.ui.JBColor;
-import com.intellij.ui.components.JBList;
+import com.intellij.ui.treeStructure.Tree;
 import symbolscounterplugin.model.JavaSymbolsProvider;
-import symbolscounterplugin.ui.Badge;
-import symbolscounterplugin.ui.ScrollPaneItem;
-import symbolscounterplugin.ui.ScrollPaneListRenderer;
+import symbolscounterplugin.model.SymbolsTable;
+import symbolscounterplugin.ui.tree.SymbolsTreeCellRenderer;
+import symbolscounterplugin.ui.tree.SymbolsTreeModel;
+import symbolscounterplugin.ui.tree.nodes.ClassSymbolNode;
+import symbolscounterplugin.ui.tree.nodes.FileSymbolNode;
 import symbolscounterplugin.utils.SymbolsComputeServiceSingleton;
 
 import javax.swing.*;
+import javax.swing.tree.DefaultMutableTreeNode;
 import java.util.List;
 
 public class SymbolsToolWindowController {
@@ -33,11 +34,10 @@ public class SymbolsToolWindowController {
     public void postViewportUpdate(Project project) {
         ReadAction
             .nonBlocking(() -> {
-                model.computeQualifiedSymbolNames(project);
+                model.computeSymbols(project);
 
-                // return new JBList<>(model.getStoredQualifiedSymbolNames().toArray(new String[0]));
                 return buildToolWindowContent(
-                    model.getStoredQualifiedSymbolNames()
+                    model.getStoredSymbols()
                 );
             })
             .inSmartMode(project)
@@ -45,20 +45,51 @@ public class SymbolsToolWindowController {
             .submit(SymbolsComputeServiceSingleton.getInstance());
     }
 
-    private JBList<ScrollPaneItem> buildToolWindowContent(final List<String> symbols) {
-        JBList<ScrollPaneItem> symbolsList = new JBList<>();
-        symbolsList.setCellRenderer(new ScrollPaneListRenderer());
-        DefaultListModel<ScrollPaneItem> listModel = new DefaultListModel<>();
+    private JTree buildToolWindowContent(SymbolsTable symbols) {
+        // prepare tree
+        JTree symbolsTree = new Tree();
+        SymbolsTreeModel treeModel = new SymbolsTreeModel(/* empty root node */new DefaultMutableTreeNode());
 
-        int i = 100;
-        for (var symbol : symbols) {
-            listModel.addElement(new ScrollPaneItem(
-                new Badge(AllIcons.Nodes.Class, String.valueOf(i++), JBColor.BLUE),
-                symbol
-            ));
+        // build the tree
+        for (var fileName : symbols.getFileNames()) {
+            int totalClassCount = symbols.getClassCountForFile(fileName);
+            int totalMethodCount = symbols.getMethodCountForFile(fileName);
+
+            FileSymbolNode fileNode = treeModel.addFileNode(fileName, totalClassCount, totalMethodCount);
+
+            for (var className : symbols.getClassNames(fileName)) {
+                List<String> methodNames = symbols.getMethodNames(fileName, className);
+                ClassSymbolNode classNode = treeModel.addClassNodeToFileNode(fileNode, className, methodNames.size());
+
+                for (String methodName : methodNames) {
+                    treeModel.addMethodNodeToClassNode(classNode, methodName);
+                }
+            }
         }
 
-        symbolsList.setModel(listModel);
-        return symbolsList;
+        // set renderer and data to the tree view
+        symbolsTree.setModel(treeModel);
+        symbolsTree.setCellRenderer(new SymbolsTreeCellRenderer());
+        symbolsTree.setRootVisible(false);
+
+        return symbolsTree;
     }
+
+//    private JBList<ScrollPaneItem> buildToolWindowContent(SymbolsTable symbols) {
+//        // prepare UI
+//        JBList<ScrollPaneItem> symbolsList = new JBList<>();
+//        symbolsList.setCellRenderer(new ScrollPaneListRenderer());
+//        DefaultListModel<ScrollPaneItem> listModel = new DefaultListModel<>();
+//
+//        for (var symbol : symbols.getFileNames()) {
+//            listModel.addElement(new ScrollPaneItem(
+//                new Badge(AllIcons.Nodes.Class, String.valueOf(symbols.getClassCountForFile(symbol)), JBColor.BLUE),
+//                new Badge(AllIcons.Nodes.Method, String.valueOf(symbols.getMethodCountForFile(symbol)), JBColor.PINK),
+//                symbol
+//            ));
+//        }
+//
+//        symbolsList.setModel(listModel);
+//        return symbolsList;
+//    }
 }

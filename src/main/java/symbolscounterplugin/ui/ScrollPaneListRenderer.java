@@ -6,25 +6,30 @@ import javax.swing.*;
 import java.awt.*;
 
 public class ScrollPaneListRenderer extends JPanel implements ListCellRenderer<ScrollPaneItem> {
-    private final JLabel dataPanel = new JLabel();
+    private final JLabel classCountLabel = new JLabel();
+    private final JLabel methodCountLabel = new JLabel();
     private final JLabel textLabel = new JLabel();
 
     public ScrollPaneListRenderer() {
         setLayout(new FlowLayout(FlowLayout.LEFT));
-        dataPanel.setBackground(null);
-        dataPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        dataPanel.setBorder(null);
-        add(dataPanel);
+        classCountLabel.setLayout(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        methodCountLabel.setLayout(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        classCountLabel.setBorder(null);
+        methodCountLabel.setBorder(null);
+
         add(textLabel);
+        add(classCountLabel);
+        add(methodCountLabel);
     }
 
     @Override
     public Component getListCellRendererComponent(JList<? extends ScrollPaneItem> list, ScrollPaneItem value, int index, boolean isSelected, boolean cellHasFocus) {
-        //dataPanel.removeAll();
-        //dataPanel.add(value.getBadges());
-        // dataPanel.setSize(value.getBadges().getSize());
-        dataPanel.setIcon(value.getBadges().getIcon());
-        dataPanel.setText(value.getBadges().getText());
+//        classCountLabel.setText(value.getClassCountLabelText());
+//        classCountLabel.setIcon(value.getClassCountLabelIcon());
+//
+//        methodCountLabel.setText(value.getMethodCountLabelText());
+//        methodCountLabel.setIcon(value.getMethodCountLabelIcon());
+
         textLabel.setText(value.getText());
 
         if (isSelected) {

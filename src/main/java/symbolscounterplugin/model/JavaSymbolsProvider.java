@@ -8,42 +8,78 @@ import com.intellij.psi.search.FileTypeIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 public class JavaSymbolsProvider {
-    private List<String> qualifiedSymbolNames;
+    private SymbolsTable symbolsTable;
 
-    public List<String> getStoredQualifiedSymbolNames() {
-        return qualifiedSymbolNames;
+    public SymbolsTable getStoredSymbols() {
+        return symbolsTable;
     }
 
-    public void computeQualifiedSymbolNames(Project project) {
-        List<String> newQualifiedSymbolNames = new ArrayList<>();
+    public void computeSymbols(Project project) {
+        // { fileName: { className: [ methodName1, methodName2, ... ] } }
+        Map<String, Map<String, List<String>>> filesData = new TreeMap<>();
 
         Collection<VirtualFile> javaFiles = FileTypeIndex.getFiles(
-                JavaFileType.INSTANCE,
-                GlobalSearchScope.projectScope(project)
+            JavaFileType.INSTANCE,
+            GlobalSearchScope.projectScope(project)
         );
+        System.out.println("Found java files: " + javaFiles);
+
         javaFiles.forEach((virtualFile) -> {
             PsiFile psiFile = PsiManager.getInstance(project).findFile(virtualFile);
 
             if (psiFile instanceof PsiJavaFile psiJavaFile) {
+                // System.out.println("file: " + getJavaFileNameWithPackage(psiJavaFile));
+
+                Map<String, List<String>> innerMap = new TreeMap<>();
+                filesData.put(getJavaFileNameWithPackage(psiJavaFile), innerMap);
+
                 psiJavaFile.accept(new PsiRecursiveElementVisitor() {
                     @Override
                     public void visitElement(@NotNull PsiElement element) {
                         super.visitElement(element);
 
                         if (element instanceof PsiClass classElement) {
-                            newQualifiedSymbolNames.add(classElement.getQualifiedName());
+                            List<String> methodNames = new ArrayList<>();
+                            for (PsiMethod method : classElement.getMethods()) {
+                                StringBuilder methodNameBuilder = new StringBuilder();
+
+                                methodNameBuilder.append(method.getName());
+                                methodNameBuilder.append("(");
+
+
+                                var parametersList = method.getParameterList().getParameters();
+                                for (int i = 0; i < parametersList.length; ++i) {
+                                    methodNameBuilder.append(parametersList[i].getType().getPresentableText());
+                                    if (i != parametersList.length - 1) {
+                                        methodNameBuilder.append(", ");
+                                    }
+                                }
+
+                                methodNameBuilder.append(")");
+                                methodNames.add(methodNameBuilder.toString());
+                            }
+
+                            innerMap.put(classElement.getQualifiedName(), methodNames);
                         }
                     }
                 });
             }
         });
 
-        newQualifiedSymbolNames.sort(String::compareTo);
-        qualifiedSymbolNames = newQualifiedSymbolNames;
+        // System.out.println("Full files data: " + filesData);
+        symbolsTable = new SymbolsTable(filesData);
+    }
+
+    private String getJavaFileNameWithPackage(PsiJavaFile psiJavaFile) {
+        StringBuilder filenameBuilder = new StringBuilder();
+
+        if (psiJavaFile.getPackageName().length() != 0) {
+            filenameBuilder.append(psiJavaFile.getPackageName()).append(".");
+        }
+
+        return filenameBuilder.append(psiJavaFile.getName()).toString();
     }
 }
