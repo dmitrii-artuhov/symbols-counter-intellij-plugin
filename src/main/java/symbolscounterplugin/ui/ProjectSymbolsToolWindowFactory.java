@@ -58,7 +58,23 @@ public class ProjectSymbolsToolWindowFactory implements ToolWindowFactory {
             scrollPane.putClientProperty(Constants.UI_ID_PROPERTY, Constants.SYMBOLS_TOOL_WINDOW_SCROLL_PANE_ID);
             scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
             scrollPane.setBorder(null);
+
+            JLabel placeholder = createEmptyViewportPlaceholder();
+            scrollPane.setViewportView(placeholder);
+            scrollPane.getViewport().addChangeListener(e -> {
+                if (scrollPane.getViewport().getView() == null) {
+                    scrollPane.setViewportView(placeholder);
+                }
+            });
+
             return scrollPane;
+        }
+
+        private JLabel createEmptyViewportPlaceholder() {
+            JLabel placeholderLabel = new JLabel("Nothing to show :)");
+            placeholderLabel.setHorizontalAlignment(JLabel.CENTER);
+            placeholderLabel.setForeground(JBColor.GRAY);
+            return placeholderLabel;
         }
 
         public JPanel getContentPanel() {

@@ -7,11 +7,14 @@ import com.intellij.psi.*;
 import com.intellij.psi.search.FileTypeIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
 public class JavaSymbolsProvider {
     private SymbolsTable symbolsTable;
+    private static final Logger logger = LoggerFactory.getLogger(JavaSymbolsProvider.class);
 
     public SymbolsTable getStoredSymbols() {
         return symbolsTable;
@@ -26,12 +29,13 @@ public class JavaSymbolsProvider {
             GlobalSearchScope.projectScope(project)
         );
         System.out.println("Found java files: " + javaFiles);
+        logger.info("Found java files: " + javaFiles);
 
         javaFiles.forEach((virtualFile) -> {
             PsiFile psiFile = PsiManager.getInstance(project).findFile(virtualFile);
 
             if (psiFile instanceof PsiJavaFile psiJavaFile) {
-                // System.out.println("file: " + getJavaFileNameWithPackage(psiJavaFile));
+                // logger.info("file: " + getJavaFileNameWithPackage(psiJavaFile));
 
                 Map<String, List<String>> innerMap = new TreeMap<>();
                 filesData.put(getJavaFileNameWithPackage(psiJavaFile), innerMap);
@@ -69,7 +73,7 @@ public class JavaSymbolsProvider {
             }
         });
 
-        // System.out.println("Full files data: " + filesData);
+        // logger.info("Full files data: " + filesData);
         symbolsTable = new SymbolsTable(filesData);
     }
 

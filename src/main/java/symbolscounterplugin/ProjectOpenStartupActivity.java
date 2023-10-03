@@ -1,5 +1,10 @@
 package symbolscounterplugin;
 
+import com.intellij.openapi.editor.Document;
+import com.intellij.openapi.editor.EditorFactory;
+import com.intellij.openapi.editor.event.DocumentEvent;
+import com.intellij.openapi.editor.event.DocumentListener;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.startup.StartupActivity;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -44,6 +49,30 @@ public class ProjectOpenStartupActivity implements StartupActivity {
             controller.postViewportUpdate(project);
 
             // register document update callback
+//            EditorFactory.getInstance().getEventMulticaster().addDocumentListener(new DocumentListener() {
+//                      @Override
+//                      public void bulkUpdateStarting(@NotNull Document document) {
+//                          DocumentListener.super.bulkUpdateStarting(document);
+//
+//                          VirtualFile virtualFile = FileDocumentManager.getInstance().getFile(document);
+//                          if (virtualFile != null && virtualFile.getName().endsWith(".java")) {
+//                              // Perform actions specific to Java files being saved externally.
+//                              System.out.println("Java file changed: " + virtualFile.getPath());
+//                          }
+//                      }
+//                  }
+////                @Override
+////                public void beforeDocumentChange(@NotNull DocumentEvent event) {
+////                    DocumentListener.super.beforeDocumentChange(event);
+////
+////                    VirtualFile virtualFile = FileDocumentManager.getInstance().getFile(event.getDocument());
+////                    if (virtualFile != null && virtualFile.getName().endsWith(".java")) {
+////                        // Perform actions specific to Java files being saved externally.
+////                        System.out.println("Java file changed: " + virtualFile.getPath());
+////                    }
+////                }
+//                    , project);
+
             project.getMessageBus().connect().subscribe(VirtualFileManager.VFS_CHANGES, new BulkFileListener() {
                 @Override
                 public void after(@NotNull List<? extends VFileEvent> events) {
@@ -55,7 +84,6 @@ public class ProjectOpenStartupActivity implements StartupActivity {
 
                         if (file.getName().endsWith(".java")) {
                             shouldRecomputeSymbols = true;
-                            System.out.println("Java file changed: " + file.getPath());
                             break;
                         }
                     }

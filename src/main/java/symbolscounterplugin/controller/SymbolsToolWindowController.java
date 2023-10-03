@@ -29,7 +29,7 @@ public class SymbolsToolWindowController {
      * Posts the request for recomputing symbols and updating corresponding UI element.
      * <p>
      * Uses single-threaded pool for posting order preservation. The UI element is updated on the UI thread.
-     * @param project for which to compute symbols.
+     * @param project project for which to compute symbols.
      */
     public void postViewportUpdate(Project project) {
         ReadAction
@@ -46,6 +46,11 @@ public class SymbolsToolWindowController {
     }
 
     private JTree buildToolWindowContent(SymbolsTable symbols) {
+        if (symbols.getFileNames().isEmpty()) {
+            System.out.println("Empty files");
+            return null;
+        }
+
         // prepare tree
         JTree symbolsTree = new Tree();
         SymbolsTreeModel treeModel = new SymbolsTreeModel(/* empty root node */new DefaultMutableTreeNode());
@@ -74,22 +79,4 @@ public class SymbolsToolWindowController {
 
         return symbolsTree;
     }
-
-//    private JBList<ScrollPaneItem> buildToolWindowContent(SymbolsTable symbols) {
-//        // prepare UI
-//        JBList<ScrollPaneItem> symbolsList = new JBList<>();
-//        symbolsList.setCellRenderer(new ScrollPaneListRenderer());
-//        DefaultListModel<ScrollPaneItem> listModel = new DefaultListModel<>();
-//
-//        for (var symbol : symbols.getFileNames()) {
-//            listModel.addElement(new ScrollPaneItem(
-//                new Badge(AllIcons.Nodes.Class, String.valueOf(symbols.getClassCountForFile(symbol)), JBColor.BLUE),
-//                new Badge(AllIcons.Nodes.Method, String.valueOf(symbols.getMethodCountForFile(symbol)), JBColor.PINK),
-//                symbol
-//            ));
-//        }
-//
-//        symbolsList.setModel(listModel);
-//        return symbolsList;
-//    }
 }
