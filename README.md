@@ -16,7 +16,7 @@ For the project on the 1st picture plugin will generate an output as shown on th
 ## Implementation details:
 - The plugin uses MVC structure:
   - Model: [JavaSymbolsProvider](./src/main/java/symbolscounterplugin/model/JavaSymbolsProvider.java).
-  - View: [ProjectSymbolsToolWindowFactory](./src/main/java/symbolcounterplugin/ui/ProjectSymbolsToolWindowFactory.java) (contains the tool window), [SymbolsTreeCellRenderer](./src/main/java/symbolscounterplugin/ui/SymbolsTreeCellRenderer.java) (contains the rendering logic for the tree-like structure that shows project symbols).
+  - View: [ProjectSymbolsToolWindowFactory](./src/main/java/symbolscounterplugin/ui/ProjectSymbolsToolWindowFactory.java) (contains the tool window), [SymbolsTreeCellRenderer](./src/main/java/symbolscounterplugin/ui/tree/SymbolsTreeCellRenderer.java) (contains the rendering logic for the tree-like structure that shows project symbols).
   - Controller: [SymbolsToolWindowController](./src/main/java/symbolscounterplugin/controller/SymbolsToolWindowController.java) (manages updating of the tree, creates tree nodes and tree representation in memory, updates the ui after the tree was recalculated).
 
 ## Building and running:
