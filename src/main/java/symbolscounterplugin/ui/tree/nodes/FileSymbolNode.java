@@ -5,9 +5,14 @@ import com.intellij.icons.AllIcons;
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 
-public class FileSymbolNode extends DefaultMutableTreeNode {
+public class FileSymbolNode extends SymbolNode {
     public FileSymbolNode(String filename, int classesCount, int methodsCount) {
         super(new FileNodeData(filename, classesCount, methodsCount));
+    }
+
+    @Override
+    public String getName() {
+        return ((FileSymbolNode.FileNodeData)getUserObject()).getFileName();
     }
 
     public static class FileNodeData {

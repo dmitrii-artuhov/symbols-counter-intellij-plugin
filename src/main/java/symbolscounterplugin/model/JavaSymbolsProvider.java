@@ -29,13 +29,13 @@ public class JavaSymbolsProvider {
             GlobalSearchScope.projectScope(project)
         );
         System.out.println("Found java files: " + javaFiles);
-        logger.info("Found java files: " + javaFiles);
+        // logger.info("Found java files: " + javaFiles);
 
         javaFiles.forEach((virtualFile) -> {
             PsiFile psiFile = PsiManager.getInstance(project).findFile(virtualFile);
 
             if (psiFile instanceof PsiJavaFile psiJavaFile) {
-                // logger.info("file: " + getJavaFileNameWithPackage(psiJavaFile));
+                 // System.out.println("file: " + getJavaFileNameWithPackage(psiJavaFile));
 
                 Map<String, List<String>> innerMap = new TreeMap<>();
                 filesData.put(getJavaFileNameWithPackage(psiJavaFile), innerMap);
@@ -46,6 +46,14 @@ public class JavaSymbolsProvider {
                         super.visitElement(element);
 
                         if (element instanceof PsiClass classElement) {
+                            if (classElement.getQualifiedName() == null) {
+                                // anonymous/local class or generic type - skip them
+                                // logger.info("Visited anonymous/local class or generic type: " + classElement.getName());
+                                return;
+                            }
+
+                            // logger.info("Visiting psi class element: " + classElement.getQualifiedName());
+
                             List<String> methodNames = new ArrayList<>();
                             for (PsiMethod method : classElement.getMethods()) {
                                 StringBuilder methodNameBuilder = new StringBuilder();

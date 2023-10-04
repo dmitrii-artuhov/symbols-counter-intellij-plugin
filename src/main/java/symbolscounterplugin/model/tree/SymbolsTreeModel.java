@@ -1,23 +1,28 @@
-package symbolscounterplugin.ui.tree;
+package symbolscounterplugin.model.tree;
 
 
 import symbolscounterplugin.ui.tree.nodes.ClassSymbolNode;
 import symbolscounterplugin.ui.tree.nodes.FileSymbolNode;
 import symbolscounterplugin.ui.tree.nodes.MethodSymbolNode;
+import symbolscounterplugin.ui.tree.nodes.SymbolNode;
 
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeNode;
+import java.util.List;
 
 public class SymbolsTreeModel extends DefaultTreeModel {
-    public SymbolsTreeModel(DefaultMutableTreeNode root) {
-        super(root);
+    private final DefaultMutableTreeNode root;
+
+    public SymbolsTreeModel() {
+        super(new DefaultMutableTreeNode("Project"));
+        root = (DefaultMutableTreeNode) getRoot();
     }
 
     public FileSymbolNode addFileNode(String filename, int classesCount, int methodsCount) {
         FileSymbolNode fileNode = new FileSymbolNode(filename, classesCount, methodsCount);
-        ((DefaultMutableTreeNode) getRoot()).add(fileNode);
-        nodeStructureChanged((TreeNode) getRoot());
+        root.add(fileNode);
+        nodeStructureChanged(root);
         return fileNode;
     }
 
@@ -40,15 +45,31 @@ public class SymbolsTreeModel extends DefaultTreeModel {
     }
 
     // Maybe will need to implement later (eg. for testing)
-//    private FileNode findFileNode(String filename) {
-//        Enumeration<?> enumeration = ((DefaultMutableTreeNode) getRoot()).children();
-//        while (enumeration.hasMoreElements()) {
-//            FileNode fileNode = (FileNode) enumeration.nextElement();
-//            if (fileNode.toString().equals(filename)) {
-//                return fileNode;
-//            }
-//        }
-//        return null;
-//    }
+    public DefaultMutableTreeNode findNode(List<String> path) {
+        DefaultMutableTreeNode currentNode = root;
+        if (path.isEmpty() || !root.getUserObject().equals(path.get(0))) {
+            // roots don't match
+            return null;
+        }
+
+        for (int i = 1; i < path.size(); ++i) {
+            String nodeName = path.get(i);
+            boolean foundChild = false;
+            var children = currentNode.children();
+
+            while (children.hasMoreElements() && !foundChild) {
+                if (children.nextElement() instanceof SymbolNode child) {
+                    if (child.getName().equals(nodeName)) {
+                        currentNode = (DefaultMutableTreeNode) child;
+                        foundChild = true;
+                    }
+                }
+            }
+
+            if (!foundChild) return null;
+        }
+
+        return currentNode;
+    }
 }
 

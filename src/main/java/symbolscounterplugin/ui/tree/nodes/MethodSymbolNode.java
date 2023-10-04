@@ -5,9 +5,14 @@ import com.intellij.icons.AllIcons;
 import javax.swing.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 
-public class MethodSymbolNode extends DefaultMutableTreeNode {
+public class MethodSymbolNode extends SymbolNode {
     public MethodSymbolNode(String methodName) {
         super(new MethodNodeData(methodName));
+    }
+
+    @Override
+    public String getName() {
+        return ((MethodSymbolNode.MethodNodeData)getUserObject()).getMethodName();
     }
 
     public static class MethodNodeData {

@@ -4,25 +4,32 @@ import com.intellij.openapi.application.ModalityState;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.treeStructure.Tree;
+import symbolscounterplugin.model.tree.ExpandedTreePathsStorage;
 import symbolscounterplugin.model.JavaSymbolsProvider;
 import symbolscounterplugin.model.SymbolsTable;
 import symbolscounterplugin.ui.tree.SymbolsTreeCellRenderer;
-import symbolscounterplugin.ui.tree.SymbolsTreeModel;
+import symbolscounterplugin.model.tree.SymbolsTreeModel;
 import symbolscounterplugin.ui.tree.nodes.ClassSymbolNode;
 import symbolscounterplugin.ui.tree.nodes.FileSymbolNode;
 import symbolscounterplugin.utils.SymbolsComputeServiceSingleton;
 
 import javax.swing.*;
+import javax.swing.event.TreeExpansionEvent;
+import javax.swing.event.TreeExpansionListener;
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.TreeNode;
+import javax.swing.tree.TreePath;
 import java.util.List;
 
 public class SymbolsToolWindowController {
     private final JScrollPane view;
-    private final JavaSymbolsProvider model;
+    private final JavaSymbolsProvider symbolsProvider;
+    private final ExpandedTreePathsStorage expandedTreePathsStorage;
 
     public SymbolsToolWindowController(JavaSymbolsProvider symbolsProvider, JScrollPane scrollPane) {
         this.view = scrollPane;
-        this.model = symbolsProvider;
+        this.symbolsProvider = symbolsProvider;
+        expandedTreePathsStorage = new ExpandedTreePathsStorage();
     }
 
     /**
@@ -34,10 +41,10 @@ public class SymbolsToolWindowController {
     public void postViewportUpdate(Project project) {
         ReadAction
             .nonBlocking(() -> {
-                model.computeSymbols(project);
+                symbolsProvider.computeSymbols(project);
 
                 return buildToolWindowContent(
-                    model.getStoredSymbols()
+                        symbolsProvider.getStoredSymbols()
                 );
             })
             .inSmartMode(project)
@@ -48,12 +55,14 @@ public class SymbolsToolWindowController {
     private JTree buildToolWindowContent(SymbolsTable symbols) {
         if (symbols.getFileNames().isEmpty()) {
             System.out.println("Empty files");
+            expandedTreePathsStorage.reset();
             return null;
         }
 
         // prepare tree
+        SymbolsTreeModel treeModel = new SymbolsTreeModel();
         JTree symbolsTree = new Tree();
-        SymbolsTreeModel treeModel = new SymbolsTreeModel(/* empty root node */new DefaultMutableTreeNode());
+        symbolsTree.setModel(treeModel);
 
         // build the tree
         for (var fileName : symbols.getFileNames()) {
@@ -61,7 +70,6 @@ public class SymbolsToolWindowController {
             int totalMethodCount = symbols.getMethodCountForFile(fileName);
 
             FileSymbolNode fileNode = treeModel.addFileNode(fileName, totalClassCount, totalMethodCount);
-
             for (var className : symbols.getClassNames(fileName)) {
                 List<String> methodNames = symbols.getMethodNames(fileName, className);
                 ClassSymbolNode classNode = treeModel.addClassNodeToFileNode(fileNode, className, methodNames.size());
@@ -72,8 +80,38 @@ public class SymbolsToolWindowController {
             }
         }
 
+        // expand saved paths that are still available
+        for (var expandedPath : expandedTreePathsStorage.getExpandedPaths()) {
+            // paths that don't exist in the new tree will just be ignored inside JTree::expandPath(...) method
+            DefaultMutableTreeNode nodeToExpand = treeModel.findNode(expandedPath);
+            // System.out.println("Expand node: " + nodeToExpand);
+            if (nodeToExpand != null) {
+                symbolsTree.expandPath(new TreePath(nodeToExpand.getPath()));
+            }
+        }
+
+        // reset expanded paths storage (use symbolsTree.getExpandedDescendants(...) on the newly created tree)
+        expandedTreePathsStorage.reset(symbolsTree.getExpandedDescendants(new TreePath(treeModel.getRoot())));
+
+        // watch for the new expand/collapse events
+        symbolsTree.addTreeExpansionListener(new TreeExpansionListener() {
+            @Override
+            public void treeExpanded(TreeExpansionEvent event) {
+                if (event.getPath() != null) {
+                    expandedTreePathsStorage.addExpandedPath(event.getPath());
+                }
+            }
+
+            @Override
+            public void treeCollapsed(TreeExpansionEvent event) {
+                if (event.getPath() != null) {
+                    expandedTreePathsStorage.removeExpandedPath(event.getPath());
+                }
+            }
+        });
+
+
         // set renderer and data to the tree view
-        symbolsTree.setModel(treeModel);
         symbolsTree.setCellRenderer(new SymbolsTreeCellRenderer());
         symbolsTree.setRootVisible(false);
 
